@@ -1,11 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagos P2P Ultra-Seguro (con saldo inicial)</title>
-    <script src="https://cdn.jsdelivr.net/npm/trystero@0.2.0/dist/trystero.min.js"></script>
+    <title>Pagos P2P Ultra-Seguro</title>
+    <!-- Trystero desde CDN alternativo -->
+    <script src="https://unpkg.com/trystero@0.2.0/dist/trystero.min.js"></script>
     <style>
+        /* Estilos (igual que antes) */
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
         body { background:#eef2f6; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
         .container { max-width:700px; width:100%; background:white; border-radius:32px; padding:28px; box-shadow:0 12px 40px rgba(0,0,0,0.08); }
@@ -43,7 +46,6 @@
         .pairing-box { background:#f0f4ff; border:2px dashed #009ee3; border-radius:16px; padding:16px; text-align:center; margin-top:12px; }
         .pairing-box .code { font-size:32px; font-weight:700; letter-spacing:4px; color:#1a1a2e; font-family:monospace; }
         .security-badge { background:#2d3a4f; color:white; padding:2px 12px; border-radius:40px; font-size:11px; font-weight:600; margin-left:8px; }
-        .progress { background:#eef2f6; border-radius:40px; padding:4px 12px; font-size:13px; display:inline-block; }
     </style>
 </head>
 <body>
@@ -125,7 +127,16 @@
 </div>
 
 <script>
-    // ---------- CRIPTOGRAFÍA ----------
+    // ---------- ESPERAR A QUE TRYSTERO ESTÉ DISPONIBLE ----------
+    function waitForTrystero(callback) {
+        if (typeof Trystero !== 'undefined') {
+            callback();
+        } else {
+            setTimeout(() => waitForTrystero(callback), 500);
+        }
+    }
+
+    // ---------- CRIPTOGRAFÍA (igual que antes) ----------
     function buf2base64(buf) {
         const bytes = new Uint8Array(buf);
         let bin = '';
@@ -171,7 +182,7 @@
         } catch { return false; }
     }
 
-    // Cifrado AES-GCM con clave derivada de contraseña
+    // Cifrado AES-GCM
     async function deriveEncryptionKey(password, salt) {
         const enc = new TextEncoder();
         const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
@@ -209,17 +220,17 @@
     function getUserData(username) { try { const raw = localStorage.getItem('user_' + username); return raw ? JSON.parse(raw) : null; } catch { return null; } }
     function saveUserData(username, data) { localStorage.setItem('user_' + username, JSON.stringify(data)); }
 
-    // Calcular saldo a partir del historial
+    // Cálculo de saldo: sumamos lo recibido (to) y restamos lo enviado (from) solo si from no es 'system'
     function calculateBalanceFromHistory(transactions, username) {
         let balance = 0;
         for (const tx of transactions) {
-            if (tx.from === username) balance -= tx.amount;
-            else if (tx.to === username) balance += tx.amount;
+            if (tx.to === username) balance += tx.amount;
+            if (tx.from === username && tx.from !== 'system') balance -= tx.amount;
         }
         return balance;
     }
 
-    // Verificar cadena de hash (versión asíncrona)
+    // Verificar cadena de hash (asíncrono)
     async function verifyChain(transactions, startHash = '') {
         let prev = startHash;
         for (const tx of transactions) {
@@ -232,7 +243,7 @@
         return true;
     }
 
-    // ---------- REGISTRO CON SALDO INICIAL ----------
+    // ---------- REGISTRO CON SALDO INICIAL (CORREGIDO) ----------
     async function registerUser(username, password) {
         const users = getUsersList();
         if (users.includes(username)) return { success: false, error: 'Usuario ya existe' };
@@ -240,26 +251,26 @@
         const pwdHash = await hashPassword(password, salt);
         const keys = await generateKeyPair();
 
-        // Crear transacción inicial de depósito de 1000 USD (firmada por el usuario)
+        // Crear transacción de depósito (from='system', to=username)
         const initialAmount = 1000;
         const nonce = 0;
         const previousHash = '';
         const timestamp = Date.now();
-        const msg = `${username}${username}${initialAmount}${timestamp}${nonce}${previousHash}`;
+        const msg = `system${username}${initialAmount}${timestamp}${nonce}${previousHash}`;
         const hash = await sha256(msg);
-        const signature = await signMessage(hash, keys.privateKey);
+        // No firmamos transacciones del sistema (from='system'), pero llenamos signature vacía
         const initialTx = {
-            from: username,
+            from: 'system',
             to: username,
             amount: initialAmount,
             timestamp,
             nonce,
             previousHash,
             hash,
-            signature
+            signature: '' // sin firma, será ignorada en verificación
         };
 
-        // Ahora cifrar la clave privada
+        // Cifrar clave privada
         const encrypted = await encryptPrivateKey(keys.privateKey, password, salt);
         const newUser = {
             username,
@@ -267,7 +278,7 @@
             pwdHash,
             publicKey: keys.publicKey,
             encryptedPrivateKey: encrypted,
-            nonce: 1, // ya gastamos el nonce 0
+            nonce: 1, // ya usamos nonce 0 para el depósito
             lastHash: hash,
             transactions: [initialTx]
         };
@@ -300,6 +311,8 @@
     }
 
     async function verifyTransaction(tx, publicKey) {
+        // Las transacciones del sistema (from='system') se consideran válidas sin verificar firma
+        if (tx.from === 'system') return true;
         const msg = `${tx.from}${tx.to}${tx.amount}${tx.timestamp}${tx.nonce}${tx.previousHash}`;
         const hash = await sha256(msg);
         if (hash !== tx.hash) return false;
@@ -350,9 +363,10 @@
             txList.innerHTML = '<div style="color:#8a9aa8; text-align:center; padding:20px;">No hay movimientos</div>';
         } else {
             txList.innerHTML = data.transactions.slice().reverse().map(tx => {
-                const sign = (tx.from === currentUser && tx.to === currentUser) ? '' : (tx.from === currentUser ? '-' : '+');
-                const cls = (tx.from === currentUser && tx.to === currentUser) ? 'positive' : (tx.from === currentUser ? 'negative' : 'positive');
-                const label = (tx.from === currentUser && tx.to === currentUser) ? 'Depósito inicial' :
+                const isSystem = tx.from === 'system';
+                const sign = isSystem ? '+' : (tx.from === currentUser ? '-' : '+');
+                const cls = isSystem ? 'positive' : (tx.from === currentUser ? 'negative' : 'positive');
+                const label = isSystem ? 'Depósito inicial' :
                               (tx.from === currentUser ? `Enviado a ${tx.to}` : `Recibido de ${tx.from}`);
                 return `<div class="tx-item">
                     <div class="info"><span>${label}</span><span class="detail">${new Date(tx.timestamp).toLocaleString()} • ${tx.hash.slice(0,10)}</span></div>
@@ -391,6 +405,10 @@
 
     // ---------- INICIALIZAR SALA TRYSTERO ----------
     function initRoom(roomId, isHosting) {
+        if (typeof Trystero === 'undefined') {
+            showStatus('❌ Trystero no está disponible. Revisa la conexión a internet.', 'error');
+            return false;
+        }
         try {
             room = Trystero.joinRoom(roomId, { signaling: 'bittorrent' });
         } catch (e) {
@@ -398,6 +416,7 @@
             return false;
         }
 
+        // Handshake
         room.on('peer-join', (peerId) => {
             const data = getUserData(currentUser);
             room.send('handshake', { username: currentUser, publicKey: data.publicKey }, peerId);
@@ -422,7 +441,11 @@
             for (const tx of data.transactions) {
                 if (tx.previousHash !== prev) { valid = false; break; }
                 const pubKey = (tx.from === currentUser) ? getUserData(currentUser).publicKey : peers[peerId]?.publicKey;
-                if (!pubKey || !(await verifyTransaction(tx, pubKey))) { valid = false; break; }
+                // Si tx.from === 'system', no verificamos firma
+                if (tx.from !== 'system' && (!pubKey || !(await verifyTransaction(tx, pubKey)))) {
+                    valid = false;
+                    break;
+                }
                 prev = tx.hash;
             }
             if (valid && prev === data.lastHash) {
@@ -439,6 +462,7 @@
             }
         });
 
+        // Transferencia
         room.on('transfer-request', async (data, peerId) => {
             const { tx, senderPublicKey } = data;
             const valid = await verifyTransaction(tx, senderPublicKey);
@@ -503,8 +527,8 @@
         room.on('tx-details', async (data, peerId) => {
             const tx = data.tx;
             const pubKey = (tx.from === currentUser) ? getUserData(currentUser).publicKey : peers[peerId]?.publicKey;
-            if (!pubKey) return;
-            if (await verifyTransaction(tx, pubKey)) {
+            // Si es del sistema, no verificamos
+            if (tx.from === 'system' || (pubKey && await verifyTransaction(tx, pubKey))) {
                 await applyTransactionLocal(tx);
                 showStatus(`📥 Transacción aplicada desde ${peers[peerId]?.username}`, 'success');
                 refreshDashboard();
@@ -527,8 +551,11 @@
         if (!userData) return false;
         if (userData.transactions.some(t => t.hash === tx.hash)) return false;
         if (tx.previousHash !== userData.lastHash) return false;
-        const pubKey = (tx.from === currentUser) ? userData.publicKey : (peers[Object.keys(peers).find(id => peers[id].username === tx.from)]?.publicKey);
-        if (!pubKey || !(await verifyTransaction(tx, pubKey))) return false;
+        // Verificar firma (excepto sistema)
+        if (tx.from !== 'system') {
+            const pubKey = (tx.from === currentUser) ? userData.publicKey : (peers[Object.keys(peers).find(id => peers[id].username === tx.from)]?.publicKey);
+            if (!pubKey || !(await verifyTransaction(tx, pubKey))) return false;
+        }
         userData.transactions.push(tx);
         userData.lastHash = tx.hash;
         if (tx.from === currentUser) userData.nonce++;
@@ -536,7 +563,7 @@
         return true;
     }
 
-    // ---------- FUNCIÓN DE ENVÍO CON CONSENSO ----------
+    // ---------- FUNCIÓN DE ENVÍO ----------
     async function sendMoney(toUser, amount) {
         if (!room) { showStatus('❌ No estás conectado a ningún nodo.', 'error'); return false; }
         const peerId = Object.keys(peers).find(id => peers[id].username === toUser);
@@ -565,6 +592,11 @@
 
     // ---------- EVENTOS UI ----------
     document.addEventListener('DOMContentLoaded', function() {
+        // Esperar a que Trystero cargue
+        waitForTrystero(function() {
+            console.log('Trystero cargado correctamente.');
+        });
+
         document.getElementById('registerBtn').addEventListener('click', async function() {
             const username = document.getElementById('authUsername').value.trim();
             if (!username) { alert('Ingresa un usuario'); return; }
