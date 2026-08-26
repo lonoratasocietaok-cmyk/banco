@@ -1,26 +1,25 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagos Descentralizados - Consenso P2P</title>
+    <title>Pagos P2P Ultra-Seguro</title>
+    <script src="https://cdn.jsdelivr.net/npm/trystero@0.2.0/dist/trystero.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
         body { background:#eef2f6; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
-        .container { max-width:640px; width:100%; background:white; border-radius:32px; padding:28px; box-shadow:0 12px 40px rgba(0,0,0,0.08); }
-        h1 { font-size:24px; font-weight:700; color:#1a1a2e; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
-        h1 small { font-size:14px; font-weight:400; color:#6b7a8f; }
+        .container { max-width:700px; width:100%; background:white; border-radius:32px; padding:28px; box-shadow:0 12px 40px rgba(0,0,0,0.08); }
+        h1 { font-size:24px; font-weight:700; color:#1a1a2e; margin-bottom:20px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
         .form-group { margin-bottom:16px; }
         label { font-weight:600; font-size:13px; color:#2d3a4f; display:block; margin-bottom:4px; }
-        input, select { width:100%; padding:12px 16px; border:1.5px solid #e4e9f0; border-radius:16px; font-size:15px; transition:0.2s; background:#fafcfe; }
+        input { width:100%; padding:12px 16px; border:1.5px solid #e4e9f0; border-radius:16px; font-size:15px; transition:0.2s; background:#fafcfe; }
         input:focus { outline:none; border-color:#009ee3; box-shadow:0 0 0 3px rgba(0,158,227,0.1); }
         button { background:#009ee3; color:white; border:none; padding:14px 20px; border-radius:40px; font-weight:700; font-size:16px; cursor:pointer; transition:0.15s; width:100%; margin-top:8px; }
         button:hover { background:#0088c4; transform:scale(1.01); }
         button.secondary { background:#eef2f6; color:#1a1a2e; }
         button.secondary:hover { background:#e4e9f0; }
-        button.danger { background:#ff4757; }
-        button.danger:hover { background:#e0313f; }
+        button.success { background:#00a86b; }
+        button.success:hover { background:#008f5a; }
         .card { background:#f8fafd; border-radius:20px; padding:18px; margin-top:16px; border:1px solid #eef2f6; }
         .balance { font-size:32px; font-weight:700; color:#1a1a2e; }
         .balance small { font-size:16px; font-weight:400; color:#6b7a8f; }
@@ -38,30 +37,22 @@
         .flex button { flex:1; }
         .password-box { background:#f0f2f5; padding:12px; border-radius:12px; font-family:monospace; font-size:18px; letter-spacing:2px; text-align:center; margin:8px 0; border:2px dashed #009ee3; }
         .badge { background:#009ee3; color:white; padding:2px 12px; border-radius:40px; font-size:12px; font-weight:600; }
-        .node-tag { display:inline-block; background:#eef2f6; padding:4px 12px; border-radius:40px; margin:4px; font-size:13px; }
-        .node-tag.active { background:#009ee3; color:white; }
-        .validation-status { font-size:14px; padding:8px 12px; border-radius:12px; margin-top:8px; background:#f0f2f5; }
-        .validation-status.ok { background:#d4edda; color:#155724; }
-        .validation-status.fail { background:#f8d7da; color:#721c24; }
-        .file-actions { display:flex; gap:12px; margin-top:10px; }
-        .file-actions button { width:auto; padding:8px 16px; font-size:13px; }
+        .peer-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+        .peer-item { background:#eef2f6; padding:6px 14px; border-radius:40px; font-size:14px; display:flex; align-items:center; gap:6px; }
+        .peer-item.online { background:#d4edda; }
+        .pairing-box { background:#f0f4ff; border:2px dashed #009ee3; border-radius:16px; padding:16px; text-align:center; margin-top:12px; }
+        .pairing-box .code { font-size:32px; font-weight:700; letter-spacing:4px; color:#1a1a2e; font-family:monospace; }
+        .security-badge { background:#2d3a4f; color:white; padding:2px 12px; border-radius:40px; font-size:11px; font-weight:600; margin-left:8px; }
+        .progress { background:#eef2f6; border-radius:40px; padding:4px 12px; font-size:13px; display:inline-block; }
     </style>
 </head>
 <body>
 <div class="container" id="app">
-
-    <!-- PANTALLA DE AUTENTICACIÓN -->
     <div id="authScreen">
-        <h1>🔐 Pago <span style="color:#009ee3;">D</span><small>centralizado</small></h1>
+        <h1>🔐 Pago <span style="color:#009ee3;">D</span><small>centralizado Ultra</small></h1>
         <div id="authForm">
-            <div class="form-group">
-                <label>👤 Usuario</label>
-                <input type="text" id="authUsername" placeholder="Ej: juan">
-            </div>
-            <div class="form-group">
-                <label>🔑 Contraseña</label>
-                <input type="password" id="authPassword" placeholder="Tu contraseña">
-            </div>
+            <div class="form-group"><label>👤 Usuario</label><input type="text" id="authUsername" placeholder="Ej: juan"></div>
+            <div class="form-group"><label>🔑 Contraseña</label><input type="password" id="authPassword" placeholder="Tu contraseña"></div>
             <button id="loginBtn">Iniciar sesión</button>
             <hr style="margin:20px 0; border:none; border-top:1px solid #eef2f6;">
             <button class="secondary" id="registerBtn">🆕 Crear nueva cuenta</button>
@@ -71,204 +62,295 @@
             <p><strong>Usuario:</strong> <span id="newUsername"></span></p>
             <p><strong>Contraseña generada:</strong></p>
             <div class="password-box" id="newPassword"></div>
-            <p style="font-size:13px; color:#6b7a8f;">⚠️ Guarda esta contraseña, no podrás recuperarla.</p>
+            <p style="font-size:13px; color:#6b7a8f;">⚠️ Guarda esta contraseña. Se usa para cifrar tu clave privada.</p>
             <button id="goToLoginBtn">Volver a iniciar sesión</button>
         </div>
     </div>
 
-    <!-- PANEL PRINCIPAL -->
     <div id="dashboardScreen" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h1 style="margin:0;">💳 PagoD</h1>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+            <h1 style="margin:0;">💳 PagoD <span class="security-badge">🔒 Ultra</span></h1>
             <div>
                 <span class="badge" id="currentUserDisplay"></span>
                 <button class="secondary" id="logoutBtn" style="width:auto; padding:8px 16px; margin-left:8px;">Cerrar</button>
             </div>
         </div>
 
-        <!-- Saldo -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:500; color:#2d3a4f;">💰 Saldo disponible</span>
+                <span style="font-weight:500; color:#2d3a4f;">💰 Saldo</span>
                 <span id="balanceDisplay" class="balance">0 <small>USD</small></span>
             </div>
         </div>
 
-        <!-- Enviar dinero -->
         <div class="card" style="border-color:#009ee3;">
+            <h3 style="font-size:16px; margin-bottom:8px;">🔗 Red P2P</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="success" id="generateCodeBtn" style="flex:1; min-width:120px;">🆕 Generar código</button>
+                <button class="secondary" id="joinCodeBtn" style="flex:1; min-width:120px;">🔗 Unirse con código</button>
+            </div>
+            <div id="pairingArea" class="pairing-box hidden">
+                <div class="code" id="pairingCodeDisplay">----</div>
+                <div class="sub">Comparte este código con otro usuario</div>
+                <button class="secondary" id="copyCodeBtn" style="width:auto; padding:8px 20px; margin-top:8px;">📋 Copiar</button>
+            </div>
+            <div id="joinInputArea" class="hidden" style="margin-top:12px;">
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label>Introduce el código</label>
+                    <input type="text" id="joinCodeInput" placeholder="Ej: G3H7K9" maxlength="10" style="text-transform:uppercase;">
+                </div>
+                <button id="joinSubmitBtn" class="success">Conectar</button>
+            </div>
+            <div id="p2pStatus" class="alert hidden" style="margin-top:10px;"></div>
+            <div class="peer-list" id="peerList"><span style="color:#8a9aa8; font-size:14px;">Sin nodos conectados</span></div>
+        </div>
+
+        <div class="card" style="border-color:#00a86b;">
             <h3 style="font-size:16px; margin-bottom:12px;">✉️ Enviar dinero</h3>
-            <div class="form-group">
-                <label>Destinatario</label>
-                <input type="text" id="sendTo" placeholder="Nombre de usuario">
-            </div>
-            <div class="form-group">
-                <label>Cantidad (USD)</label>
-                <input type="number" id="sendAmount" placeholder="0.00" step="0.01" min="0">
-            </div>
+            <div class="form-group"><label>Destinatario</label><input type="text" id="sendTo" placeholder="Usuario conectado"></div>
+            <div class="form-group"><label>Cantidad (USD)</label><input type="number" id="sendAmount" placeholder="0.00" step="0.01" min="0"></div>
             <button id="sendBtn">Enviar</button>
             <div id="sendResult" class="alert hidden"></div>
-            <div id="validationStatus" class="validation-status hidden"></div>
+            <div id="validationStatus" class="alert hidden"></div>
         </div>
 
-        <!-- Historial -->
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="font-size:16px;">📋 Historial</h3>
-                <span style="font-size:12px; color:#8a9aa8;" id="txCount">0 transacciones</span>
+                <h3 style="font-size:16px;">📋 Historial (cadena inmutable)</h3>
+                <span style="font-size:12px; color:#8a9aa8;" id="txCount">0 tx</span>
             </div>
-            <div id="transactionList" class="tx-list">
-                <div style="color:#8a9aa8; text-align:center; padding:20px;">No hay movimientos</div>
-            </div>
-        </div>
-
-        <!-- Nodos y Archivos -->
-        <div class="card">
-            <h3 style="font-size:16px; margin-bottom:8px;">🌐 Nodos en la red</h3>
-            <div id="nodeList" style="font-size:14px; color:#2d3a4f; display:flex; flex-wrap:wrap; gap:4px;">
-                <span class="node-tag">Cargando...</span>
-            </div>
-            <div class="file-actions">
-                <button class="secondary" id="exportBtn">📤 Exportar archivo</button>
-                <button class="secondary" id="importBtn">📥 Importar archivo</button>
-                <input type="file" id="fileInput" accept=".json" style="display:none;">
-            </div>
-            <div id="importStatus" class="alert hidden" style="margin-top:8px;"></div>
+            <div id="transactionList" class="tx-list"><div style="color:#8a9aa8; text-align:center; padding:20px;">No hay movimientos</div></div>
         </div>
     </div>
 </div>
 
 <script>
-    // ---------- UTILIDADES ----------
-    function generatePassword(length = 10) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let pwd = '';
-        for (let i = 0; i < length; i++) {
-            pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return pwd;
+    // ---------- CRIPTOGRAFÍA ----------
+    function buf2base64(buf) {
+        const bytes = new Uint8Array(buf);
+        let bin = '';
+        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+    }
+    function base642buf(base64) {
+        const bin = atob(base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes.buffer;
+    }
+    async function sha256(str) {
+        const enc = new TextEncoder();
+        const hash = await crypto.subtle.digest('SHA-256', enc.encode(str));
+        return buf2base64(hash);
+    }
+    async function hashPassword(pwd, salt) {
+        const enc = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', enc.encode(pwd), 'PBKDF2', false, ['deriveBits']);
+        const bits = await crypto.subtle.deriveBits(
+            { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+            key, 256
+        );
+        return buf2base64(bits);
+    }
+    async function generateKeyPair() {
+        const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+        const pub = await crypto.subtle.exportKey('raw', pair.publicKey);
+        const priv = await crypto.subtle.exportKey('pkcs8', pair.privateKey);
+        return { publicKey: buf2base64(pub), privateKey: buf2base64(priv) };
+    }
+    async function signMessage(msg, privKeyB64) {
+        const enc = new TextEncoder();
+        const priv = await crypto.subtle.importKey('pkcs8', base642buf(privKeyB64), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+        const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, priv, enc.encode(msg));
+        return buf2base64(sig);
+    }
+    async function verifySignature(msg, sigB64, pubKeyB64) {
+        try {
+            const pub = await crypto.subtle.importKey('raw', base642buf(pubKeyB64), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+            return await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pub, base642buf(sigB64), new TextEncoder().encode(msg));
+        } catch { return false; }
     }
 
-    function simpleHash(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return '0x' + Math.abs(hash).toString(16).padStart(8, '0');
+    // Cifrado AES-GCM con clave derivada de contraseña
+    async function deriveEncryptionKey(password, salt) {
+        const enc = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+        return await crypto.subtle.deriveKey(
+            { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+            key, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+        );
+    }
+    async function encryptPrivateKey(privKeyB64, password, salt) {
+        const key = await deriveEncryptionKey(password, salt);
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const enc = new TextEncoder();
+        const ciphertext = await crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv },
+            key,
+            enc.encode(privKeyB64)
+        );
+        return { iv: buf2base64(iv), ciphertext: buf2base64(ciphertext) };
+    }
+    async function decryptPrivateKey(encrypted, password, salt) {
+        const key = await deriveEncryptionKey(password, salt);
+        const iv = base642buf(encrypted.iv);
+        const ciphertext = base642buf(encrypted.ciphertext);
+        const dec = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv },
+            key,
+            ciphertext
+        );
+        return new TextDecoder().decode(dec);
     }
 
     // ---------- GESTIÓN DE DATOS ----------
-    function getUsersList() {
-        try { return JSON.parse(localStorage.getItem('usersList')) || []; } catch { return []; }
-    }
-    function saveUsersList(list) {
-        localStorage.setItem('usersList', JSON.stringify(list));
-    }
-    function getUserData(username) {
-        try {
-            const raw = localStorage.getItem('user_' + username);
-            return raw ? JSON.parse(raw) : null;
-        } catch { return null; }
-    }
-    function saveUserData(username, data) {
-        localStorage.setItem('user_' + username, JSON.stringify(data));
+    function getUsersList() { try { return JSON.parse(localStorage.getItem('usersList')) || []; } catch { return []; } }
+    function saveUsersList(list) { localStorage.setItem('usersList', JSON.stringify(list)); }
+    function getUserData(username) { try { const raw = localStorage.getItem('user_' + username); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+    function saveUserData(username, data) { localStorage.setItem('user_' + username, JSON.stringify(data)); }
+
+    // Calcular saldo a partir del historial (verificando cadena de hash)
+    function calculateBalanceFromHistory(transactions, username) {
+        let balance = 0;
+        for (const tx of transactions) {
+            if (tx.from === username) balance -= tx.amount;
+            else if (tx.to === username) balance += tx.amount;
+        }
+        return balance;
     }
 
-    // Registrar nuevo usuario
-    function registerUser(username) {
+    // Verificar integridad de la cadena de hash (previousHash)
+    async function verifyChain(transactions, startHash = '') {
+        let prev = startHash;
+        for (const tx of transactions) {
+            if (tx.previousHash !== prev) return false;
+            const msg = `${tx.from}${tx.to}${tx.amount}${tx.timestamp}${tx.nonce}${tx.previousHash}`;
+            const hash = await sha256(msg);
+            if (hash !== tx.hash) return false;
+            prev = hash;
+        }
+        return true;
+    }
+
+    // ---------- REGISTRO Y AUTENTICACIÓN ----------
+    async function registerUser(username, password) {
         const users = getUsersList();
-        if (users.includes(username)) return { success: false, error: 'El usuario ya existe' };
-        const password = generatePassword();
+        if (users.includes(username)) return { success: false, error: 'Usuario ya existe' };
+        const salt = buf2base64(crypto.getRandomValues(new Uint8Array(16)));
+        const pwdHash = await hashPassword(password, salt);
+        const keys = await generateKeyPair();
+        // Cifrar clave privada con la contraseña
+        const encrypted = await encryptPrivateKey(keys.privateKey, password, salt);
         const newUser = {
             username,
-            password,
-            balance: 1000,
+            salt,
+            pwdHash,
+            publicKey: keys.publicKey,
+            encryptedPrivateKey: encrypted,
             nonce: 0,
+            lastHash: '', // hash de la última transacción
             transactions: []
         };
         saveUserData(username, newUser);
         users.push(username);
         saveUsersList(users);
-        return { success: true, password };
+        return { success: true };
     }
 
-    function authenticate(username, password) {
+    async function authenticate(username, password) {
         const data = getUserData(username);
-        return data ? data.password === password : false;
+        if (!data) return false;
+        const hash = await hashPassword(password, data.salt);
+        if (hash !== data.pwdHash) return false;
+        // Descifrar clave privada
+        try {
+            const privKey = await decryptPrivateKey(data.encryptedPrivateKey, password, data.salt);
+            data._decryptedPrivateKey = privKey; // solo en memoria
+            data._password = password; // no guardar, solo para sesión
+            return true;
+        } catch { return false; }
     }
 
-    // ---------- VALIDACIÓN POR CONSENSO ----------
-    function validateTransaction(sender, receiver, amount, txHash, nonce) {
-        const users = getUsersList();
-        const otherNodes = users.filter(u => u !== sender);
-        if (otherNodes.length === 0) {
-            // Si no hay otros nodos, validación local (solo el remitente)
-            return { valid: true, approvals: 0, total: 0 };
-        }
-
-        // Cada nodo verifica usando los mismos datos (simulación)
-        const senderData = getUserData(sender);
-        if (!senderData) return { valid: false, approvals: 0, total: otherNodes.length, reason: 'Remitente no existe' };
-        if (senderData.balance < amount) return { valid: false, approvals: 0, total: otherNodes.length, reason: 'Saldo insuficiente' };
-        if (senderData.nonce !== nonce) return { valid: false, approvals: 0, total: otherNodes.length, reason: 'Nonce incorrecto' };
-        const computedHash = simpleHash(`${sender}${receiver}${amount}${nonce}`);
-        if (computedHash !== txHash) return { valid: false, approvals: 0, total: otherNodes.length, reason: 'Hash no coincide' };
-
-        // Todos los nodos aprueban (simulación)
-        const approvals = otherNodes.length;
-        return { valid: true, approvals, total: otherNodes.length };
-    }
-
-    // ---------- REALIZAR TRANSACCIÓN ----------
-    function performTransaction(sender, receiver, amount) {
-        if (sender === receiver) return { success: false, error: 'No puedes enviarte a ti mismo' };
-        const senderData = getUserData(sender);
-        const receiverData = getUserData(receiver);
-        if (!senderData) return { success: false, error: 'Remitente no encontrado' };
-        if (!receiverData) return { success: false, error: 'Destinatario no encontrado' };
-        if (amount <= 0) return { success: false, error: 'Monto inválido' };
-        if (senderData.balance < amount) return { success: false, error: 'Saldo insuficiente' };
-
-        const nonce = senderData.nonce;
+    // ---------- FUNCIONES DE TRANSACCIÓN ----------
+    async function createTransaction(from, to, amount, nonce, previousHash, privateKey) {
         const timestamp = Date.now();
-        const txHash = simpleHash(`${sender}${receiver}${amount}${nonce}`);
-
-        // Validación
-        const validation = validateTransaction(sender, receiver, amount, txHash, nonce);
-        if (!validation.valid) {
-            return { success: false, error: `Validación falló: ${validation.reason || 'consenso no alcanzado'}` };
-        }
-
-        // Aplicar cambios
-        senderData.balance -= amount;
-        senderData.nonce += 1;
-        senderData.transactions.push({
-            from: sender,
-            to: receiver,
-            amount: -amount,
-            timestamp,
-            hash: txHash,
-            type: 'enviado'
-        });
-        receiverData.balance += amount;
-        receiverData.transactions.push({
-            from: sender,
-            to: receiver,
-            amount: amount,
-            timestamp,
-            hash: txHash,
-            type: 'recibido'
-        });
-
-        saveUserData(sender, senderData);
-        saveUserData(receiver, receiverData);
-
-        return { success: true, hash: txHash, approvals: validation.approvals, total: validation.total };
+        const msg = `${from}${to}${amount}${timestamp}${nonce}${previousHash}`;
+        const hash = await sha256(msg);
+        const signature = await signMessage(hash, privateKey);
+        return { from, to, amount, timestamp, nonce, previousHash, hash, signature };
     }
 
-    // ---------- UI ----------
+    async function verifyTransaction(tx, publicKey) {
+        const msg = `${tx.from}${tx.to}${tx.amount}${tx.timestamp}${tx.nonce}${tx.previousHash}`;
+        const hash = await sha256(msg);
+        if (hash !== tx.hash) return false;
+        return await verifySignature(hash, tx.signature, publicKey);
+    }
+
+    // ---------- TRYSTERO P2P ----------
     let currentUser = null;
+    let room = null;
+    let peers = {}; // { peerId: { username, publicKey } }
+    let pendingTransfer = null; // para consenso
+
+    function updatePeerList() {
+        const container = document.getElementById('peerList');
+        const names = Object.values(peers).map(p => p.username);
+        if (names.length === 0) {
+            container.innerHTML = '<span style="color:#8a9aa8; font-size:14px;">Sin nodos conectados</span>';
+            return;
+        }
+        container.innerHTML = names.map(name => `<span class="peer-item online">${name}</span>`).join(' ');
+    }
+
+    function showStatus(msg, type = 'info') {
+        const el = document.getElementById('p2pStatus');
+        el.textContent = msg;
+        el.className = 'alert' + (type === 'success' ? ' alert-success' : '');
+        el.classList.remove('hidden');
+        clearTimeout(el._timeout);
+        el._timeout = setTimeout(() => el.classList.add('hidden'), 8000);
+    }
+
+    function refreshDashboard() {
+        if (!currentUser) return;
+        const data = getUserData(currentUser);
+        if (!data) { logout(); return; }
+        // Verificar cadena
+        const chainOk = verifyChainSync(data.transactions, data.lastHash);
+        if (!chainOk) {
+            document.getElementById('balanceDisplay').innerHTML = '⚠️ <span style="color:red;">Cadena corrupta</span>';
+            return;
+        }
+        const balance = calculateBalanceFromHistory(data.transactions, currentUser);
+        document.getElementById('balanceDisplay').innerHTML = `${balance.toFixed(2)} <small>USD</small>`;
+        const txList = document.getElementById('transactionList');
+        document.getElementById('txCount').textContent = data.transactions.length + ' tx';
+        if (data.transactions.length === 0) {
+            txList.innerHTML = '<div style="color:#8a9aa8; text-align:center; padding:20px;">No hay movimientos</div>';
+        } else {
+            txList.innerHTML = data.transactions.slice().reverse().map(tx => {
+                const sign = tx.from === currentUser ? '-' : '+';
+                const cls = tx.from === currentUser ? 'negative' : 'positive';
+                const label = tx.from === currentUser ? `Enviado a ${tx.to}` : `Recibido de ${tx.from}`;
+                return `<div class="tx-item">
+                    <div class="info"><span>${label}</span><span class="detail">${new Date(tx.timestamp).toLocaleString()} • ${tx.hash.slice(0,10)}</span></div>
+                    <div class="amount ${cls}">${sign} ${tx.amount.toFixed(2)} USD</div>
+                </div>`;
+            }).join('');
+        }
+        updatePeerList();
+    }
+
+    function verifyChainSync(transactions, lastHash) {
+        let prev = '';
+        for (const tx of transactions) {
+            if (tx.previousHash !== prev) return false;
+            // No podemos verificar hash síncrono, lo haremos asíncrono en otro lugar
+            prev = tx.hash;
+        }
+        return prev === lastHash;
+    }
 
     function showDashboard(username) {
         currentUser = username;
@@ -278,45 +360,10 @@
         refreshDashboard();
     }
 
-    function refreshDashboard() {
-        if (!currentUser) return;
-        const data = getUserData(currentUser);
-        if (!data) { logout(); return; }
-
-        // Saldo
-        document.getElementById('balanceDisplay').innerHTML = `${data.balance.toFixed(2)} <small>USD</small>`;
-
-        // Transacciones
-        const txList = document.getElementById('transactionList');
-        document.getElementById('txCount').textContent = data.transactions.length + ' transacciones';
-        if (data.transactions.length === 0) {
-            txList.innerHTML = '<div style="color:#8a9aa8; text-align:center; padding:20px;">No hay movimientos</div>';
-        } else {
-            txList.innerHTML = data.transactions.slice().reverse().map(tx => {
-                const sign = tx.amount >= 0 ? '+' : '';
-                const cls = tx.amount >= 0 ? 'positive' : 'negative';
-                const label = tx.type === 'enviado' ? `Enviado a ${tx.to}` : `Recibido de ${tx.from}`;
-                return `<div class="tx-item">
-                    <div class="info"><span>${label}</span><span class="detail">${new Date(tx.timestamp).toLocaleString()} • ${tx.hash.slice(0,10)}</span></div>
-                    <div class="amount ${cls}">${sign} ${Math.abs(tx.amount).toFixed(2)} USD</div>
-                </div>`;
-            }).join('');
-        }
-
-        // Nodos
-        const users = getUsersList();
-        const nodeContainer = document.getElementById('nodeList');
-        if (users.length === 0) {
-            nodeContainer.innerHTML = '<span class="node-tag">Sin otros nodos</span>';
-        } else {
-            nodeContainer.innerHTML = users.map(u =>
-                `<span class="node-tag ${u === currentUser ? 'active' : ''}">${u}</span>`
-            ).join(' ');
-        }
-    }
-
     function logout() {
+        if (room) { room.leave(); room = null; }
         currentUser = null;
+        peers = {};
         document.getElementById('dashboardScreen').classList.add('hidden');
         document.getElementById('authScreen').classList.remove('hidden');
         document.getElementById('authUsername').value = '';
@@ -325,78 +372,228 @@
         document.getElementById('authForm').classList.remove('hidden');
         document.getElementById('sendResult').classList.add('hidden');
         document.getElementById('validationStatus').classList.add('hidden');
+        document.getElementById('pairingArea').classList.add('hidden');
+        document.getElementById('joinInputArea').classList.add('hidden');
+        document.getElementById('p2pStatus').classList.add('hidden');
     }
 
-    // Mostrar estado de validación
-    function showValidation(approvals, total, success) {
-        const statusDiv = document.getElementById('validationStatus');
-        statusDiv.classList.remove('hidden', 'ok', 'fail');
-        if (success) {
-            statusDiv.className = 'validation-status ok';
-            statusDiv.textContent = `✅ Validación exitosa: ${approvals} de ${total} nodos confirmaron.`;
-        } else {
-            statusDiv.className = 'validation-status fail';
-            statusDiv.textContent = `❌ Validación fallida.`;
+    // ---------- INICIALIZAR SALA TRYSTERO ----------
+    function initRoom(roomId, isHosting) {
+        try {
+            room = Trystero.joinRoom(roomId, { signaling: 'bittorrent' });
+        } catch (e) {
+            showStatus('Error al crear sala: ' + e.message, 'error');
+            return false;
         }
-        setTimeout(() => statusDiv.classList.add('hidden'), 6000);
-    }
 
-    // ---------- EXPORTAR / IMPORTAR ----------
-    function exportUserData() {
-        if (!currentUser) return;
-        const data = getUserData(currentUser);
-        if (!data) return;
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${currentUser}_transactions.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    }
+        // Handshake (nombre + clave pública)
+        room.on('peer-join', (peerId) => {
+            const data = getUserData(currentUser);
+            room.send('handshake', { username: currentUser, publicKey: data.publicKey }, peerId);
+        });
 
-    function importUserData(file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const imported = JSON.parse(e.target.result);
-                if (!imported.username || !imported.transactions || imported.balance === undefined) {
-                    throw new Error('Formato inválido');
-                }
-                // Verificar que el usuario existe
-                const users = getUsersList();
-                if (!users.includes(imported.username)) {
-                    document.getElementById('importStatus').textContent = '❌ El usuario no está registrado en la red.';
-                    document.getElementById('importStatus').className = 'alert';
-                    document.getElementById('importStatus').classList.remove('hidden');
-                    return;
-                }
-                // Guardar los datos importados (sobrescribir)
-                saveUserData(imported.username, imported);
-                document.getElementById('importStatus').textContent = `✅ Archivo importado para ${imported.username}.`;
-                document.getElementById('importStatus').className = 'alert alert-success';
-                document.getElementById('importStatus').classList.remove('hidden');
-                if (currentUser === imported.username) refreshDashboard();
-                setTimeout(() => document.getElementById('importStatus').classList.add('hidden'), 4000);
-            } catch (err) {
-                document.getElementById('importStatus').textContent = '❌ Error al importar: ' + err.message;
-                document.getElementById('importStatus').className = 'alert';
-                document.getElementById('importStatus').classList.remove('hidden');
+        room.on('handshake', (data, peerId) => {
+            peers[peerId] = { username: data.username, publicKey: data.publicKey };
+            showStatus(`✅ Conectado a: ${data.username}`, 'success');
+            // Solicitar historial para sincronizar
+            room.send('request-history', { from: currentUser }, peerId);
+            updatePeerList();
+            refreshDashboard();
+        });
+
+        // Enviar historial cuando lo pidan
+        room.on('request-history', (data, peerId) => {
+            const myData = getUserData(currentUser);
+            room.send('history-response', { transactions: myData.transactions, lastHash: myData.lastHash }, peerId);
+        });
+
+        // Recibir historial y verificar
+        room.on('history-response', async (data, peerId) => {
+            // Verificar cadena y firmas
+            let valid = true;
+            let prev = '';
+            for (const tx of data.transactions) {
+                if (tx.previousHash !== prev) { valid = false; break; }
+                const pubKey = (tx.from === currentUser) ? getUserData(currentUser).publicKey : peers[peerId]?.publicKey;
+                if (!pubKey || !(await verifyTransaction(tx, pubKey))) { valid = false; break; }
+                prev = tx.hash;
             }
-        };
-        reader.readAsText(file);
+            if (valid && prev === data.lastHash) {
+                // Guardar historial sincronizado (si es más completo que el nuestro)
+                const myData = getUserData(currentUser);
+                if (data.transactions.length > myData.transactions.length) {
+                    myData.transactions = data.transactions;
+                    myData.lastHash = data.lastHash;
+                    saveUserData(currentUser, myData);
+                    showStatus(`📥 Historial sincronizado desde ${peers[peerId]?.username}`, 'success');
+                    refreshDashboard();
+                }
+            } else {
+                showStatus(`⚠️ Historial recibido inválido, ignorado.`, 'error');
+            }
+        });
+
+        // Mensajes de transacción (consenso múltiple)
+        room.on('transfer-request', async (data, peerId) => {
+            const { tx, senderPublicKey } = data;
+            // Verificar firma
+            const valid = await verifyTransaction(tx, senderPublicKey);
+            if (!valid) {
+                room.send('transfer-response', { approved: false, reason: 'Firma inválida', txHash: tx.hash }, peerId);
+                return;
+            }
+            // Verificar que el remitente sea el que dice ser
+            if (tx.from !== peers[peerId]?.username) {
+                room.send('transfer-response', { approved: false, reason: 'Suplantación', txHash: tx.hash }, peerId);
+                return;
+            }
+            // Verificar nonce (debe ser el siguiente)
+            const senderData = getUserData(tx.from);
+            if (!senderData) {
+                room.send('transfer-response', { approved: false, reason: 'Remitente no existe', txHash: tx.hash }, peerId);
+                return;
+            }
+            if (tx.nonce !== senderData.nonce) {
+                room.send('transfer-response', { approved: false, reason: `Nonce inválido (esperado ${senderData.nonce})`, txHash: tx.hash }, peerId);
+                return;
+            }
+            // Verificar saldo
+            const balance = calculateBalanceFromHistory(senderData.transactions, tx.from);
+            if (balance < tx.amount) {
+                room.send('transfer-response', { approved: false, reason: 'Saldo insuficiente', txHash: tx.hash }, peerId);
+                return;
+            }
+            // Verificar cadena (previousHash)
+            if (tx.previousHash !== senderData.lastHash) {
+                room.send('transfer-response', { approved: false, reason: 'Hash anterior incorrecto', txHash: tx.hash }, peerId);
+                return;
+            }
+            // Todo ok
+            room.send('transfer-response', { approved: true, txHash: tx.hash }, peerId);
+        });
+
+        // Acumular respuestas de validación
+        let validationResponses = {};
+
+        room.on('transfer-response', (data, peerId) => {
+            const txHash = data.txHash;
+            if (!validationResponses[txHash]) validationResponses[txHash] = { approvals: 0, total: 0 };
+            validationResponses[txHash].total++;
+            if (data.approved) validationResponses[txHash].approvals++;
+            // Si alcanzamos umbral (60% y al menos 2), confirmar
+            const total = Object.keys(peers).length;
+            const needed = Math.max(2, Math.ceil(total * 0.6));
+            if (validationResponses[txHash].approvals >= needed && validationResponses[txHash].total >= total) {
+                // Confirmar transacción a todos
+                room.broadcast('confirm-transfer', { txHash });
+                // Aplicar localmente si somos el remitente
+                if (pendingTransfer && pendingTransfer.hash === txHash) {
+                    applyTransactionLocal(pendingTransfer);
+                    pendingTransfer = null;
+                }
+                showStatus(`✅ Transacción confirmada por consenso (${validationResponses[txHash].approvals} nodos)`, 'success');
+                refreshDashboard();
+                delete validationResponses[txHash];
+            }
+        });
+
+        // Confirmación final
+        room.on('confirm-transfer', async (data, peerId) => {
+            // Buscar la transacción en el historial del remitente y aplicarla localmente
+            // Como no tenemos la tx completa, la solicitamos
+            room.send('get-tx', { txHash: data.txHash }, peerId);
+        });
+
+        room.on('get-tx', (data, peerId) => {
+            const myData = getUserData(currentUser);
+            const tx = myData.transactions.find(t => t.hash === data.txHash);
+            if (tx) room.send('tx-details', { tx }, peerId);
+        });
+
+        room.on('tx-details', async (data, peerId) => {
+            const tx = data.tx;
+            // Verificar y aplicar si corresponde
+            const pubKey = (tx.from === currentUser) ? getUserData(currentUser).publicKey : peers[peerId]?.publicKey;
+            if (!pubKey) return;
+            if (await verifyTransaction(tx, pubKey)) {
+                await applyTransactionLocal(tx);
+                showStatus(`📥 Transacción aplicada desde ${peers[peerId]?.username}`, 'success');
+                refreshDashboard();
+            }
+        });
+
+        room.on('peer-leave', (peerId) => {
+            const name = peers[peerId]?.username || peerId.slice(0,8);
+            delete peers[peerId];
+            showStatus(`👋 Nodo desconectado: ${name}`, 'info');
+            updatePeerList();
+            refreshDashboard();
+        });
+
+        return true;
     }
 
-    // ---------- EVENTOS ----------
+    async function applyTransactionLocal(tx) {
+        const userData = getUserData(currentUser);
+        if (!userData) return false;
+        // Verificar que no esté duplicada
+        if (userData.transactions.some(t => t.hash === tx.hash)) return false;
+        // Verificar que el previousHash coincida
+        if (tx.previousHash !== userData.lastHash) return false;
+        // Verificar firma (si somos el remitente o destinatario)
+        const pubKey = (tx.from === currentUser) ? userData.publicKey : (peers[Object.keys(peers).find(id => peers[id].username === tx.from)]?.publicKey);
+        if (!pubKey || !(await verifyTransaction(tx, pubKey))) return false;
+        // Aplicar
+        userData.transactions.push(tx);
+        userData.lastHash = tx.hash;
+        if (tx.from === currentUser) userData.nonce++;
+        saveUserData(currentUser, userData);
+        return true;
+    }
+
+    // ---------- FUNCIÓN DE ENVÍO CON CONSENSO ----------
+    async function sendMoney(toUser, amount) {
+        if (!room) { showStatus('❌ No estás conectado a ningún nodo.', 'error'); return false; }
+        const peerId = Object.keys(peers).find(id => peers[id].username === toUser);
+        if (!peerId) { showStatus(`❌ "${toUser}" no está conectado.`, 'error'); return false; }
+
+        const senderData = getUserData(currentUser);
+        if (!senderData) return false;
+        const balance = calculateBalanceFromHistory(senderData.transactions, currentUser);
+        if (balance < amount) { showStatus('❌ Saldo insuficiente', 'error'); return false; }
+
+        const nonce = senderData.nonce;
+        const previousHash = senderData.lastHash;
+        const tx = await createTransaction(currentUser, toUser, amount, nonce, previousHash, senderData._decryptedPrivateKey);
+
+        // Verificar localmente
+        const valid = await verifyTransaction(tx, senderData.publicKey);
+        if (!valid) { showStatus('❌ Error al firmar', 'error'); return false; }
+
+        // Guardar como pendiente
+        pendingTransfer = tx;
+
+        // Enviar a todos los nodos para validación
+        const allPeers = Object.keys(peers);
+        for (const pid of allPeers) {
+            room.send('transfer-request', { tx, senderPublicKey: senderData.publicKey }, pid);
+        }
+
+        showStatus(`⏳ Validando con ${allPeers.length} nodos...`, 'info');
+        return true;
+    }
+
+    // ---------- EVENTOS UI ----------
     document.addEventListener('DOMContentLoaded', function() {
         // Registro
-        document.getElementById('registerBtn').addEventListener('click', function() {
+        document.getElementById('registerBtn').addEventListener('click', async function() {
             const username = document.getElementById('authUsername').value.trim();
-            if (!username) { alert('Ingresa un nombre de usuario'); return; }
-            const result = registerUser(username);
+            if (!username) { alert('Ingresa un usuario'); return; }
+            const password = generatePassword();
+            const result = await registerUser(username, password);
             if (!result.success) { alert(result.error); return; }
             document.getElementById('newUsername').textContent = username;
-            document.getElementById('newPassword').textContent = result.password;
+            document.getElementById('newPassword').textContent = password;
             document.getElementById('registerInfo').classList.remove('hidden');
             document.getElementById('authForm').classList.add('hidden');
         });
@@ -406,67 +603,97 @@
         });
 
         // Login
-        document.getElementById('loginBtn').addEventListener('click', function() {
+        document.getElementById('loginBtn').addEventListener('click', async function() {
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value;
-            if (!username || !password) { alert('Completa ambos campos'); return; }
-            if (!authenticate(username, password)) { alert('Usuario o contraseña incorrectos'); return; }
+            if (!username || !password) { alert('Completa ambos'); return; }
+            const ok = await authenticate(username, password);
+            if (!ok) { alert('Usuario o contraseña incorrectos'); return; }
             showDashboard(username);
+            if (room) { room.leave(); room = null; peers = {}; }
+            document.getElementById('pairingArea').classList.add('hidden');
+            document.getElementById('joinInputArea').classList.add('hidden');
+            updatePeerList();
         });
 
-        // Logout
         document.getElementById('logoutBtn').addEventListener('click', logout);
 
+        // Códigos
+        document.getElementById('generateCodeBtn').addEventListener('click', function() {
+            const code = generateRoomId(6);
+            document.getElementById('pairingCodeDisplay').textContent = code;
+            document.getElementById('pairingArea').classList.remove('hidden');
+            document.getElementById('joinInputArea').classList.add('hidden');
+            if (room) { room.leave(); room = null; peers = {}; }
+            if (initRoom(code, true)) showStatus(`🔗 Sala creada: ${code}`, 'success');
+        });
+        document.getElementById('copyCodeBtn').addEventListener('click', function() {
+            const code = document.getElementById('pairingCodeDisplay').textContent;
+            navigator.clipboard.writeText(code).then(() => showStatus('📋 Copiado', 'success'))
+                .catch(() => { const range = document.createRange(); range.selectNode(document.getElementById('pairingCodeDisplay')); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand('copy'); showStatus('📋 Copiado', 'success'); });
+        });
+        document.getElementById('joinCodeBtn').addEventListener('click', function() {
+            document.getElementById('joinInputArea').classList.toggle('hidden');
+            document.getElementById('pairingArea').classList.add('hidden');
+        });
+        document.getElementById('joinSubmitBtn').addEventListener('click', function() {
+            const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+            if (!code) { showStatus('❌ Ingresa un código', 'error'); return; }
+            if (room) { room.leave(); room = null; peers = {}; }
+            if (initRoom(code, false)) {
+                showStatus(`🔗 Conectando a ${code}...`, 'info');
+                document.getElementById('joinInputArea').classList.add('hidden');
+                document.getElementById('joinCodeInput').value = '';
+            }
+        });
+
         // Enviar
-        document.getElementById('sendBtn').addEventListener('click', function() {
+        document.getElementById('sendBtn').addEventListener('click', async function() {
             const to = document.getElementById('sendTo').value.trim();
             const amount = parseFloat(document.getElementById('sendAmount').value);
             const resultDiv = document.getElementById('sendResult');
-            const statusDiv = document.getElementById('validationStatus');
-
             if (!to || !amount || amount <= 0) {
                 resultDiv.className = 'alert';
-                resultDiv.textContent = '❌ Ingresa destinatario y monto válido';
+                resultDiv.textContent = '❌ Datos inválidos';
                 resultDiv.classList.remove('hidden');
                 return;
             }
-
-            const result = performTransaction(currentUser, to, amount);
-            if (!result.success) {
+            const peerNames = Object.values(peers).map(p => p.username);
+            if (!peerNames.includes(to)) {
                 resultDiv.className = 'alert';
-                resultDiv.textContent = '❌ ' + result.error;
+                resultDiv.textContent = `❌ "${to}" no está conectado.`;
                 resultDiv.classList.remove('hidden');
-                statusDiv.classList.add('hidden');
-            } else {
+                return;
+            }
+            const ok = await sendMoney(to, amount);
+            if (ok) {
                 resultDiv.className = 'alert alert-success';
-                resultDiv.textContent = `✅ Transacción exitosa. Hash: ${result.hash.slice(0,16)}...`;
+                resultDiv.textContent = `✅ Enviado para validación a ${to}`;
                 resultDiv.classList.remove('hidden');
-                showValidation(result.approvals, result.total, true);
                 document.getElementById('sendTo').value = '';
                 document.getElementById('sendAmount').value = '';
-                refreshDashboard();
                 setTimeout(() => resultDiv.classList.add('hidden'), 6000);
             }
         });
 
         // Enter en login
-        document.getElementById('authPassword').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('loginBtn').click(); });
-        document.getElementById('authUsername').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('loginBtn').click(); });
-
-        // Exportar
-        document.getElementById('exportBtn').addEventListener('click', exportUserData);
-
-        // Importar (disparar input file)
-        document.getElementById('importBtn').addEventListener('click', function() {
-            document.getElementById('fileInput').click();
-        });
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            if (this.files && this.files[0]) {
-                importUserData(this.files[0]);
-            }
-            this.value = ''; // permitir re-importar el mismo archivo
-        });
+        document.getElementById('authPassword').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+        document.getElementById('authUsername').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
     });
+
+    function generatePassword(length = 12) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+        let pwd = '';
+        for (let i = 0; i < length; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+        return pwd;
+    }
+    function generateRoomId(length = 6) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let id = '';
+        for (let i = 0; i < length; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+        return id;
+    }
 </script>
 </body>
 </html>
+```
