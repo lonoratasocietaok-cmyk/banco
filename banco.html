@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagos P2P Ultra-Seguro</title>
+    <title>Pagos P2P Ultra-Seguro (con saldo inicial)</title>
     <script src="https://cdn.jsdelivr.net/npm/trystero@0.2.0/dist/trystero.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
@@ -55,7 +55,7 @@
             <div class="form-group"><label>🔑 Contraseña</label><input type="password" id="authPassword" placeholder="Tu contraseña"></div>
             <button id="loginBtn">Iniciar sesión</button>
             <hr style="margin:20px 0; border:none; border-top:1px solid #eef2f6;">
-            <button class="secondary" id="registerBtn">🆕 Crear nueva cuenta</button>
+            <button class="secondary" id="registerBtn">🆕 Crear nueva cuenta (con 1000 USD)</button>
         </div>
         <div id="registerInfo" class="hidden">
             <div class="alert alert-success">✅ Cuenta creada con éxito</div>
@@ -78,7 +78,7 @@
 
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:500; color:#2d3a4f;">💰 Saldo</span>
+                <span style="font-weight:500; color:#2d3a4f;">💰 Saldo disponible</span>
                 <span id="balanceDisplay" class="balance">0 <small>USD</small></span>
             </div>
         </div>
@@ -209,7 +209,7 @@
     function getUserData(username) { try { const raw = localStorage.getItem('user_' + username); return raw ? JSON.parse(raw) : null; } catch { return null; } }
     function saveUserData(username, data) { localStorage.setItem('user_' + username, JSON.stringify(data)); }
 
-    // Calcular saldo a partir del historial (verificando cadena de hash)
+    // Calcular saldo a partir del historial
     function calculateBalanceFromHistory(transactions, username) {
         let balance = 0;
         for (const tx of transactions) {
@@ -219,7 +219,7 @@
         return balance;
     }
 
-    // Verificar integridad de la cadena de hash (previousHash)
+    // Verificar cadena de hash (versión asíncrona)
     async function verifyChain(transactions, startHash = '') {
         let prev = startHash;
         for (const tx of transactions) {
@@ -232,14 +232,34 @@
         return true;
     }
 
-    // ---------- REGISTRO Y AUTENTICACIÓN ----------
+    // ---------- REGISTRO CON SALDO INICIAL ----------
     async function registerUser(username, password) {
         const users = getUsersList();
         if (users.includes(username)) return { success: false, error: 'Usuario ya existe' };
         const salt = buf2base64(crypto.getRandomValues(new Uint8Array(16)));
         const pwdHash = await hashPassword(password, salt);
         const keys = await generateKeyPair();
-        // Cifrar clave privada con la contraseña
+
+        // Crear transacción inicial de depósito de 1000 USD (firmada por el usuario)
+        const initialAmount = 1000;
+        const nonce = 0;
+        const previousHash = '';
+        const timestamp = Date.now();
+        const msg = `${username}${username}${initialAmount}${timestamp}${nonce}${previousHash}`;
+        const hash = await sha256(msg);
+        const signature = await signMessage(hash, keys.privateKey);
+        const initialTx = {
+            from: username,
+            to: username,
+            amount: initialAmount,
+            timestamp,
+            nonce,
+            previousHash,
+            hash,
+            signature
+        };
+
+        // Ahora cifrar la clave privada
         const encrypted = await encryptPrivateKey(keys.privateKey, password, salt);
         const newUser = {
             username,
@@ -247,9 +267,9 @@
             pwdHash,
             publicKey: keys.publicKey,
             encryptedPrivateKey: encrypted,
-            nonce: 0,
-            lastHash: '', // hash de la última transacción
-            transactions: []
+            nonce: 1, // ya gastamos el nonce 0
+            lastHash: hash,
+            transactions: [initialTx]
         };
         saveUserData(username, newUser);
         users.push(username);
@@ -262,11 +282,10 @@
         if (!data) return false;
         const hash = await hashPassword(password, data.salt);
         if (hash !== data.pwdHash) return false;
-        // Descifrar clave privada
         try {
             const privKey = await decryptPrivateKey(data.encryptedPrivateKey, password, data.salt);
-            data._decryptedPrivateKey = privKey; // solo en memoria
-            data._password = password; // no guardar, solo para sesión
+            data._decryptedPrivateKey = privKey;
+            data._password = password;
             return true;
         } catch { return false; }
     }
@@ -290,8 +309,9 @@
     // ---------- TRYSTERO P2P ----------
     let currentUser = null;
     let room = null;
-    let peers = {}; // { peerId: { username, publicKey } }
-    let pendingTransfer = null; // para consenso
+    let peers = {};
+    let pendingTransfer = null;
+    let validationResponses = {};
 
     function updatePeerList() {
         const container = document.getElementById('peerList');
@@ -312,12 +332,12 @@
         el._timeout = setTimeout(() => el.classList.add('hidden'), 8000);
     }
 
-    function refreshDashboard() {
+    async function refreshDashboard() {
         if (!currentUser) return;
         const data = getUserData(currentUser);
         if (!data) { logout(); return; }
         // Verificar cadena
-        const chainOk = verifyChainSync(data.transactions, data.lastHash);
+        const chainOk = await verifyChain(data.transactions, '');
         if (!chainOk) {
             document.getElementById('balanceDisplay').innerHTML = '⚠️ <span style="color:red;">Cadena corrupta</span>';
             return;
@@ -330,26 +350,17 @@
             txList.innerHTML = '<div style="color:#8a9aa8; text-align:center; padding:20px;">No hay movimientos</div>';
         } else {
             txList.innerHTML = data.transactions.slice().reverse().map(tx => {
-                const sign = tx.from === currentUser ? '-' : '+';
-                const cls = tx.from === currentUser ? 'negative' : 'positive';
-                const label = tx.from === currentUser ? `Enviado a ${tx.to}` : `Recibido de ${tx.from}`;
+                const sign = (tx.from === currentUser && tx.to === currentUser) ? '' : (tx.from === currentUser ? '-' : '+');
+                const cls = (tx.from === currentUser && tx.to === currentUser) ? 'positive' : (tx.from === currentUser ? 'negative' : 'positive');
+                const label = (tx.from === currentUser && tx.to === currentUser) ? 'Depósito inicial' :
+                              (tx.from === currentUser ? `Enviado a ${tx.to}` : `Recibido de ${tx.from}`);
                 return `<div class="tx-item">
                     <div class="info"><span>${label}</span><span class="detail">${new Date(tx.timestamp).toLocaleString()} • ${tx.hash.slice(0,10)}</span></div>
-                    <div class="amount ${cls}">${sign} ${tx.amount.toFixed(2)} USD</div>
+                    <div class="amount ${cls}">${sign} ${Math.abs(tx.amount).toFixed(2)} USD</div>
                 </div>`;
             }).join('');
         }
         updatePeerList();
-    }
-
-    function verifyChainSync(transactions, lastHash) {
-        let prev = '';
-        for (const tx of transactions) {
-            if (tx.previousHash !== prev) return false;
-            // No podemos verificar hash síncrono, lo haremos asíncrono en otro lugar
-            prev = tx.hash;
-        }
-        return prev === lastHash;
     }
 
     function showDashboard(username) {
@@ -364,6 +375,7 @@
         if (room) { room.leave(); room = null; }
         currentUser = null;
         peers = {};
+        validationResponses = {};
         document.getElementById('dashboardScreen').classList.add('hidden');
         document.getElementById('authScreen').classList.remove('hidden');
         document.getElementById('authUsername').value = '';
@@ -386,7 +398,6 @@
             return false;
         }
 
-        // Handshake (nombre + clave pública)
         room.on('peer-join', (peerId) => {
             const data = getUserData(currentUser);
             room.send('handshake', { username: currentUser, publicKey: data.publicKey }, peerId);
@@ -395,21 +406,17 @@
         room.on('handshake', (data, peerId) => {
             peers[peerId] = { username: data.username, publicKey: data.publicKey };
             showStatus(`✅ Conectado a: ${data.username}`, 'success');
-            // Solicitar historial para sincronizar
             room.send('request-history', { from: currentUser }, peerId);
             updatePeerList();
             refreshDashboard();
         });
 
-        // Enviar historial cuando lo pidan
         room.on('request-history', (data, peerId) => {
             const myData = getUserData(currentUser);
             room.send('history-response', { transactions: myData.transactions, lastHash: myData.lastHash }, peerId);
         });
 
-        // Recibir historial y verificar
         room.on('history-response', async (data, peerId) => {
-            // Verificar cadena y firmas
             let valid = true;
             let prev = '';
             for (const tx of data.transactions) {
@@ -419,7 +426,6 @@
                 prev = tx.hash;
             }
             if (valid && prev === data.lastHash) {
-                // Guardar historial sincronizado (si es más completo que el nuestro)
                 const myData = getUserData(currentUser);
                 if (data.transactions.length > myData.transactions.length) {
                     myData.transactions = data.transactions;
@@ -433,21 +439,17 @@
             }
         });
 
-        // Mensajes de transacción (consenso múltiple)
         room.on('transfer-request', async (data, peerId) => {
             const { tx, senderPublicKey } = data;
-            // Verificar firma
             const valid = await verifyTransaction(tx, senderPublicKey);
             if (!valid) {
                 room.send('transfer-response', { approved: false, reason: 'Firma inválida', txHash: tx.hash }, peerId);
                 return;
             }
-            // Verificar que el remitente sea el que dice ser
             if (tx.from !== peers[peerId]?.username) {
                 room.send('transfer-response', { approved: false, reason: 'Suplantación', txHash: tx.hash }, peerId);
                 return;
             }
-            // Verificar nonce (debe ser el siguiente)
             const senderData = getUserData(tx.from);
             if (!senderData) {
                 room.send('transfer-response', { approved: false, reason: 'Remitente no existe', txHash: tx.hash }, peerId);
@@ -457,36 +459,27 @@
                 room.send('transfer-response', { approved: false, reason: `Nonce inválido (esperado ${senderData.nonce})`, txHash: tx.hash }, peerId);
                 return;
             }
-            // Verificar saldo
             const balance = calculateBalanceFromHistory(senderData.transactions, tx.from);
             if (balance < tx.amount) {
                 room.send('transfer-response', { approved: false, reason: 'Saldo insuficiente', txHash: tx.hash }, peerId);
                 return;
             }
-            // Verificar cadena (previousHash)
             if (tx.previousHash !== senderData.lastHash) {
                 room.send('transfer-response', { approved: false, reason: 'Hash anterior incorrecto', txHash: tx.hash }, peerId);
                 return;
             }
-            // Todo ok
             room.send('transfer-response', { approved: true, txHash: tx.hash }, peerId);
         });
-
-        // Acumular respuestas de validación
-        let validationResponses = {};
 
         room.on('transfer-response', (data, peerId) => {
             const txHash = data.txHash;
             if (!validationResponses[txHash]) validationResponses[txHash] = { approvals: 0, total: 0 };
             validationResponses[txHash].total++;
             if (data.approved) validationResponses[txHash].approvals++;
-            // Si alcanzamos umbral (60% y al menos 2), confirmar
             const total = Object.keys(peers).length;
             const needed = Math.max(2, Math.ceil(total * 0.6));
             if (validationResponses[txHash].approvals >= needed && validationResponses[txHash].total >= total) {
-                // Confirmar transacción a todos
                 room.broadcast('confirm-transfer', { txHash });
-                // Aplicar localmente si somos el remitente
                 if (pendingTransfer && pendingTransfer.hash === txHash) {
                     applyTransactionLocal(pendingTransfer);
                     pendingTransfer = null;
@@ -497,10 +490,7 @@
             }
         });
 
-        // Confirmación final
         room.on('confirm-transfer', async (data, peerId) => {
-            // Buscar la transacción en el historial del remitente y aplicarla localmente
-            // Como no tenemos la tx completa, la solicitamos
             room.send('get-tx', { txHash: data.txHash }, peerId);
         });
 
@@ -512,7 +502,6 @@
 
         room.on('tx-details', async (data, peerId) => {
             const tx = data.tx;
-            // Verificar y aplicar si corresponde
             const pubKey = (tx.from === currentUser) ? getUserData(currentUser).publicKey : peers[peerId]?.publicKey;
             if (!pubKey) return;
             if (await verifyTransaction(tx, pubKey)) {
@@ -536,14 +525,10 @@
     async function applyTransactionLocal(tx) {
         const userData = getUserData(currentUser);
         if (!userData) return false;
-        // Verificar que no esté duplicada
         if (userData.transactions.some(t => t.hash === tx.hash)) return false;
-        // Verificar que el previousHash coincida
         if (tx.previousHash !== userData.lastHash) return false;
-        // Verificar firma (si somos el remitente o destinatario)
         const pubKey = (tx.from === currentUser) ? userData.publicKey : (peers[Object.keys(peers).find(id => peers[id].username === tx.from)]?.publicKey);
         if (!pubKey || !(await verifyTransaction(tx, pubKey))) return false;
-        // Aplicar
         userData.transactions.push(tx);
         userData.lastHash = tx.hash;
         if (tx.from === currentUser) userData.nonce++;
@@ -566,26 +551,20 @@
         const previousHash = senderData.lastHash;
         const tx = await createTransaction(currentUser, toUser, amount, nonce, previousHash, senderData._decryptedPrivateKey);
 
-        // Verificar localmente
         const valid = await verifyTransaction(tx, senderData.publicKey);
         if (!valid) { showStatus('❌ Error al firmar', 'error'); return false; }
 
-        // Guardar como pendiente
         pendingTransfer = tx;
-
-        // Enviar a todos los nodos para validación
         const allPeers = Object.keys(peers);
         for (const pid of allPeers) {
             room.send('transfer-request', { tx, senderPublicKey: senderData.publicKey }, pid);
         }
-
         showStatus(`⏳ Validando con ${allPeers.length} nodos...`, 'info');
         return true;
     }
 
     // ---------- EVENTOS UI ----------
     document.addEventListener('DOMContentLoaded', function() {
-        // Registro
         document.getElementById('registerBtn').addEventListener('click', async function() {
             const username = document.getElementById('authUsername').value.trim();
             if (!username) { alert('Ingresa un usuario'); return; }
@@ -602,7 +581,6 @@
             document.getElementById('authForm').classList.remove('hidden');
         });
 
-        // Login
         document.getElementById('loginBtn').addEventListener('click', async function() {
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value;
@@ -618,7 +596,6 @@
 
         document.getElementById('logoutBtn').addEventListener('click', logout);
 
-        // Códigos
         document.getElementById('generateCodeBtn').addEventListener('click', function() {
             const code = generateRoomId(6);
             document.getElementById('pairingCodeDisplay').textContent = code;
@@ -647,7 +624,6 @@
             }
         });
 
-        // Enviar
         document.getElementById('sendBtn').addEventListener('click', async function() {
             const to = document.getElementById('sendTo').value.trim();
             const amount = parseFloat(document.getElementById('sendAmount').value);
@@ -676,7 +652,6 @@
             }
         });
 
-        // Enter en login
         document.getElementById('authPassword').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
         document.getElementById('authUsername').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
     });
@@ -696,4 +671,3 @@
 </script>
 </body>
 </html>
-```
